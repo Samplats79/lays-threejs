@@ -3,7 +3,7 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 
-const canvas = document.querySelector("#app");
+const canvasEl = document.querySelector("#app");
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xffffff);
@@ -11,13 +11,12 @@ scene.background = new THREE.Color(0xffffff);
 const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 200);
 camera.position.set(0, 1.2, 3.2);
 
-const renderer = new THREE.WebGLRenderer({ antialias: true, canvas });
+const renderer = new THREE.WebGLRenderer({ antialias: true, canvas: canvasEl });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 
-const ambient = new THREE.AmbientLight(0xffffff, 0.9);
-scene.add(ambient);
+scene.add(new THREE.AmbientLight(0xffffff, 0.9));
 
 const dir = new THREE.DirectionalLight(0xffffff, 1.2);
 dir.position.set(2, 3, 2);
@@ -29,111 +28,244 @@ scene.add(dir2);
 
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
-controls.target.set(0, 1.0, 0);
+controls.target.set(0, 0.9, 0);
 
 const loader = new GLTFLoader();
 
 let bagRoot = null;
-let bagMesh = null;
-let labelMesh = null;
+let decalMesh = null;
 
-const ui = {
-  name: document.querySelector("#bagName"),
-  color: document.querySelector("#bagColor"),
-  font: document.querySelector("#bagFont"),
-};
+let baseCanvas = null;
+let baseCtx = null;
+let baseTexture = null;
+let originalMapImage = null;
+
+let decalFlipY = false;
+let decalUVBounds = null;
 
 const colorMap = {
-  yellow: new THREE.Color("#FFD000"),
-  red: new THREE.Color("#E11D48"),
-  blue: new THREE.Color("#2563EB"),
-  green: new THREE.Color("#16A34A"),
+  yellow: "#FFD000",
+  red: "#E11D48",
+  blue: "#2563EB",
+  green: "#16A34A",
 };
 
-function makeLabelTexture(text, fontStyle) {
-  const c = document.createElement("canvas");
-  c.width = 1024;
-  c.height = 512;
-  const ctx = c.getContext("2d");
-
-  ctx.clearRect(0, 0, c.width, c.height);
-
-  ctx.fillStyle = "rgba(0,0,0,0.55)";
-  ctx.font = "700 56px Arial";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText("LAYS", c.width / 2, 170);
-
-  const t = (text || "").trim() ? text.trim() : "My Lays Bag";
-
-  if (fontStyle === "italic") ctx.font = "italic 900 92px Arial";
-  else if (fontStyle === "regular") ctx.font = "700 92px Arial";
-  else ctx.font = "900 92px Arial";
-
-  ctx.fillStyle = "rgba(0,0,0,0.75)";
-  ctx.fillText(t, c.width / 2, 290);
-
-  const tex = new THREE.CanvasTexture(c);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  tex.needsUpdate = true;
-  return tex;
+function isImageReady(img) {
+  if (!img) return false;
+  if (img instanceof HTMLCanvasElement) return true;
+  if (img instanceof Image) return img.complete && img.naturalWidth > 0;
+  if (img instanceof ImageBitmap) return true;
+  return false;
 }
 
-function applyBagColor(mesh, key) {
-  const target = colorMap[key] || colorMap.yellow;
+function pickDecalMesh(root) {
+  let best = null;
+  let bestScore = -1;
 
-  mesh.traverse((child) => {
-    if (!child.isMesh) return;
-    const mat = child.material;
-    if (!mat) return;
+  root.traverse((o) => {
+    if (!o.isMesh) return;
+    const mat = Array.isArray(o.material) ? o.material[0] : o.material;
+    if (!mat || !mat.map) return;
 
-    if (Array.isArray(mat)) {
-      mat.forEach((m) => {
-        if (m && "color" in m) m.color = target.clone();
-        if (m) m.needsUpdate = true;
-      });
-    } else {
-      if ("color" in mat) mat.color = target.clone();
-      mat.needsUpdate = true;
+    const name = (o.name || "").toLowerCase();
+    const looks =
+      name.includes("logo") ||
+      name.includes("label") ||
+      name.includes("decal") ||
+      name.includes("text") ||
+      name.includes("plane");
+
+    if (!looks) return;
+
+    const geo = o.geometry;
+    if (!geo) return;
+    if (!geo.boundingBox) geo.computeBoundingBox();
+    const bb = geo.boundingBox;
+    if (!bb) return;
+
+    const s = new THREE.Vector3();
+    bb.getSize(s);
+    const score = s.x * s.y * s.z;
+
+    if (score > bestScore) {
+      bestScore = score;
+      best = o;
+    }
+  });
+
+  return best;
+}
+
+function getUVBounds(mesh) {
+  const uv = mesh.geometry?.attributes?.uv;
+  if (!uv) return null;
+
+  let minU = Infinity,
+    minV = Infinity,
+    maxU = -Infinity,
+    maxV = -Infinity;
+
+  for (let i = 0; i < uv.count; i++) {
+    const u = uv.getX(i);
+    const v = uv.getY(i);
+    if (u < minU) minU = u;
+    if (v < minV) minV = v;
+    if (u > maxU) maxU = u;
+    if (v > maxV) maxV = v;
+  }
+
+  minU = Math.max(0, Math.min(1, minU));
+  minV = Math.max(0, Math.min(1, minV));
+  maxU = Math.max(0, Math.min(1, maxU));
+  maxV = Math.max(0, Math.min(1, maxV));
+
+  return { minU, minV, maxU, maxV };
+}
+
+function applyBagColor(hex) {
+  if (!bagRoot) return;
+
+  bagRoot.traverse((o) => {
+    if (!o.isMesh) return;
+    if (decalMesh && o === decalMesh) return;
+
+    const mats = Array.isArray(o.material) ? o.material : [o.material];
+    for (const m of mats) {
+      if (!m) continue;
+      if (m.color) m.color.set(hex);
+      m.needsUpdate = true;
     }
   });
 }
 
-function ensureLabelOnBag() {
-  if (!bagRoot || !bagMesh) return;
+function setupBaseCanvasFromDecal() {
+  if (!decalMesh) return false;
 
-  if (!labelMesh) {
-    const geo = new THREE.PlaneGeometry(1.35, 0.55);
-    const tex = makeLabelTexture(ui.name.value, ui.font.value);
+  const mat = Array.isArray(decalMesh.material) ? decalMesh.material[0] : decalMesh.material;
+  if (!mat || !mat.map) return false;
 
-    const mat = new THREE.MeshBasicMaterial({
-      map: tex,
-      transparent: true,
-      opacity: 1,
-      side: THREE.DoubleSide,
-      depthWrite: false,
-    });
+  const img = mat.map.image;
+  if (!isImageReady(img)) return false;
 
-    labelMesh = new THREE.Mesh(geo, mat);
-    labelMesh.renderOrder = 10;
+  originalMapImage = img;
+  decalFlipY = mat.map.flipY;
+  decalUVBounds = getUVBounds(decalMesh);
 
-    labelMesh.position.set(0, 1.0, 0.42);
-    labelMesh.rotation.set(0, 0, 0);
+  baseCanvas = document.createElement("canvas");
+  baseCanvas.width = 2048;
+  baseCanvas.height = 2048;
 
-    bagRoot.add(labelMesh);
-  } else {
-    labelMesh.material.map?.dispose?.();
-    labelMesh.material.map = makeLabelTexture(ui.name.value, ui.font.value);
-    labelMesh.material.needsUpdate = true;
-  }
+  baseCtx = baseCanvas.getContext("2d");
+  baseCtx.clearRect(0, 0, baseCanvas.width, baseCanvas.height);
+  baseCtx.drawImage(originalMapImage, 0, 0, baseCanvas.width, baseCanvas.height);
+
+  baseTexture = new THREE.CanvasTexture(baseCanvas);
+  baseTexture.colorSpace = THREE.SRGBColorSpace;
+  baseTexture.flipY = decalFlipY;
+  baseTexture.wrapS = THREE.ClampToEdgeWrapping;
+  baseTexture.wrapT = THREE.ClampToEdgeWrapping;
+
+  mat.map = baseTexture;
+  mat.needsUpdate = true;
+
+  return true;
 }
 
-function findFirstMesh(obj) {
-  let found = null;
-  obj.traverse((child) => {
-    if (!found && child.isMesh) found = child;
-  });
-  return found;
+function clamp(v, min, max) {
+  return Math.max(min, Math.min(max, v));
+}
+
+function redrawTextureOverlay() {
+  const nameEl = document.getElementById("bagName");
+  const colorEl = document.getElementById("bagColor");
+  const fontEl = document.getElementById("bagFont");
+
+  const name = (nameEl?.value || "").trim();
+  const bagColor = colorEl?.value || "yellow";
+  const font = fontEl?.value || "bold";
+
+  applyBagColor(colorMap[bagColor] || "#FFD000");
+
+  if (!decalMesh || !baseCanvas || !baseCtx || !originalMapImage || !decalUVBounds) return;
+
+  baseCtx.clearRect(0, 0, baseCanvas.width, baseCanvas.height);
+  baseCtx.drawImage(originalMapImage, 0, 0, baseCanvas.width, baseCanvas.height);
+
+  if (!name) {
+    baseTexture.needsUpdate = true;
+    return;
+  }
+
+  const w = baseCanvas.width;
+  const h = baseCanvas.height;
+
+  const { minU, minV, maxU, maxV } = decalUVBounds;
+
+  const yFromV = (v) => (decalFlipY ? (1 - v) * h : v * h);
+
+  const left = Math.floor(minU * w);
+  const right = Math.floor(maxU * w);
+
+  const y1 = yFromV(minV);
+  const y2 = yFromV(maxV);
+
+  const top = Math.floor(Math.min(y1, y2));
+  const bottom = Math.floor(Math.max(y1, y2));
+
+  const rectW = Math.max(1, right - left);
+  const rectH = Math.max(1, bottom - top);
+
+  const fontStyle = font === "italic" ? "italic" : "normal";
+  const fontWeight = font === "regular" ? "600" : "900";
+
+  const paddingX = Math.floor(rectW * 0.08);
+  const maxWidth = rectW - paddingX * 2;
+
+  let fontSize = Math.floor(rectW * 0.18);
+
+  baseCtx.textAlign = "center";
+  baseCtx.textBaseline = "middle";
+  baseCtx.fillStyle = "rgba(0,0,0,0.85)";
+  baseCtx.shadowColor = "rgba(255,255,255,0.75)";
+  baseCtx.shadowBlur = Math.floor(rectW * 0.02);
+
+  function fitText(txt) {
+    let s = fontSize;
+    while (s > 18) {
+      baseCtx.font = `${fontStyle} ${fontWeight} ${s}px system-ui, Arial`;
+      if (baseCtx.measureText(txt).width <= maxWidth) return s;
+      s -= 2;
+    }
+    return s;
+  }
+
+  fontSize = fitText(name);
+  baseCtx.font = `${fontStyle} ${fontWeight} ${fontSize}px system-ui, Arial`;
+
+  const x = left + rectW * 0.5;
+
+  const textPosV = 0.75;
+  const safeTop = 0.05;
+  const safeBottom = 0.02;
+
+  const safePos = clamp(textPosV, safeTop, 1 - safeBottom);
+  const y = top + rectH * safePos;
+
+  baseCtx.fillText(name, x, y);
+
+  baseTexture.needsUpdate = true;
+}
+
+function bindUI() {
+  const nameEl = document.getElementById("bagName");
+  const colorEl = document.getElementById("bagColor");
+  const fontEl = document.getElementById("bagFont");
+
+  const onChange = () => redrawTextureOverlay();
+
+  nameEl?.addEventListener("input", onChange);
+  colorEl?.addEventListener("change", onChange);
+  fontEl?.addEventListener("change", onChange);
 }
 
 loader.load(
@@ -142,7 +274,7 @@ loader.load(
     bagRoot = gltf.scene;
     scene.add(bagRoot);
 
-    bagMesh = findFirstMesh(bagRoot);
+    decalMesh = pickDecalMesh(bagRoot);
 
     const box = new THREE.Box3().setFromObject(bagRoot);
     const size = new THREE.Vector3();
@@ -162,20 +294,20 @@ loader.load(
     controls.target.set(0, 0.9, 0);
     controls.update();
 
-    if (bagMesh) {
-      applyBagColor(bagRoot, ui.color.value);
-      ensureLabelOnBag();
-    }
+    bindUI();
+
+    const tryInit = () => {
+      const ok = setupBaseCanvasFromDecal();
+      redrawTextureOverlay();
+      if (!ok) requestAnimationFrame(tryInit);
+    };
+    tryInit();
   },
   undefined,
   (error) => {
     console.error("GLB load error:", error);
   }
 );
-
-ui.name.addEventListener("input", () => ensureLabelOnBag());
-ui.font.addEventListener("change", () => ensureLabelOnBag());
-ui.color.addEventListener("change", () => applyBagColor(bagRoot, ui.color.value));
 
 function animate() {
   requestAnimationFrame(animate);
