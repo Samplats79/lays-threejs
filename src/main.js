@@ -316,19 +316,36 @@ function animate() {
 }
 animate();
 
+function apiBase() {
+  const raw = (import.meta.env.VITE_API_URL || "").trim().replace(/\/$/, "");
+  if (!raw) return "";
+  if (raw.endsWith("/api/v1")) return raw;
+  return raw + "/api/v1";
+}
+
 document.getElementById("saveBagBtn")?.addEventListener("click", async () => {
   const token = localStorage.getItem("token");
-  if (!token) {
-    alert("Je bent niet ingelogd (geen token). Log eerst in via je Vue app.");
-    return;
-  }
 
   const name = (document.getElementById("bagName")?.value || "").trim();
   const bagColor = document.getElementById("bagColor")?.value || "yellow";
   const font = document.getElementById("bagFont")?.value || "bold";
 
-  const apiBase = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
-  const url = `${apiBase}/api/v1/bag`;
+  const base = apiBase();
+  const url = base ? `${base}/bag` : "";
+
+  console.log("API BASE =", base);
+  console.log("POST URL  =", url);
+  console.log("HAS TOKEN =", !!token);
+
+  if (!url) {
+    alert("VITE_API_URL ontbreekt op Vercel (Environment Variables).");
+    return;
+  }
+
+  if (!token) {
+    alert("Geen token. Log eerst in via Vue (token moet in localStorage staan).");
+    return;
+  }
 
   try {
     const res = await fetch(url, {
@@ -350,24 +367,25 @@ document.getElementById("saveBagBtn")?.addEventListener("click", async () => {
       }),
     });
 
+    const text = await res.text().catch(() => "");
+    console.log("SAVE STATUS =", res.status);
+    console.log("SAVE BODY   =", text);
+
     if (!res.ok) {
-      const txt = await res.text().catch(() => "");
-      console.log("SAVE ERROR STATUS:", res.status);
-      console.log("SAVE ERROR BODY:", txt);
-      alert("Save failed (check console)");
+      alert("Save failed. Check Console (SAVE STATUS/BODY).");
       return;
     }
 
     alert("Saved!");
   } catch (e) {
-    console.log("FETCH ERROR:", e);
-    alert("Save failed (network)");
+    console.log("FETCH ERROR =", e);
+    alert("Network error. Check Console (FETCH ERROR).");
   }
 });
 
 window.addEventListener("resize", () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setSize(window.innerWidth / 1, window.innerHeight / 1);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 });
