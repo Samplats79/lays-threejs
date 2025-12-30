@@ -53,3 +53,13 @@ html, body {
   cursor: pointer;
   font-size: 14px;
 }
+
+.ui {
+  pointer-events: auto;
+  z-index: 10;
+}
+
+#app {
+  pointer-events: none;
+}
+
