@@ -225,8 +225,8 @@ function redrawTextureOverlay() {
 
   baseCtx.textAlign = "center";
   baseCtx.textBaseline = "middle";
-  baseCtx.fillStyle = "rgba(0,0,0,0.85)";
-  baseCtx.shadowColor = "rgba(255,255,255,0.75)";
+  baseCtx.fillStyle = "rgba(0,0,0,0.9)";
+  baseCtx.shadowColor = "rgba(255,255,255,0.8)";
   baseCtx.shadowBlur = Math.floor(rectW * 0.02);
 
   function fitText(txt) {
@@ -244,7 +244,7 @@ function redrawTextureOverlay() {
 
   const x = left + rectW * 0.5;
 
-  const textPosV = 0.75;
+  const textPosV = 0.93;
   const safeTop = 0.05;
   const safeBottom = 0.02;
 
@@ -315,6 +315,11 @@ function animate() {
   renderer.render(scene, camera);
 }
 animate();
+document.getElementById("saveBagBtn")?.addEventListener("click", () => {
+  console.log("SAVE BUTTON CLICKED");
+  alert("save clicked");
+});
+
 
 window.addEventListener("resize", () => {
   camera.aspect = window.innerWidth / window.innerHeight;
