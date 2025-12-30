@@ -315,11 +315,55 @@ function animate() {
   renderer.render(scene, camera);
 }
 animate();
-document.getElementById("saveBagBtn")?.addEventListener("click", () => {
-  console.log("SAVE BUTTON CLICKED");
-  alert("save clicked");
-});
 
+document.getElementById("saveBagBtn")?.addEventListener("click", async () => {
+  const token = localStorage.getItem("token");
+  if (!token) {
+    alert("Je bent niet ingelogd (geen token). Log eerst in via je Vue app.");
+    return;
+  }
+
+  const name = (document.getElementById("bagName")?.value || "").trim();
+  const bagColor = document.getElementById("bagColor")?.value || "yellow";
+  const font = document.getElementById("bagFont")?.value || "bold";
+
+  const apiBase = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
+  const url = `${apiBase}/api/v1/bag`;
+
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + token,
+      },
+      body: JSON.stringify({
+        name,
+        image: "",
+        bagColor,
+        font,
+        pattern: "plain",
+        packaging: "classic",
+        inspiration: "",
+        keyFlavours: [],
+        user: "anonymous",
+      }),
+    });
+
+    if (!res.ok) {
+      const txt = await res.text().catch(() => "");
+      console.log("SAVE ERROR STATUS:", res.status);
+      console.log("SAVE ERROR BODY:", txt);
+      alert("Save failed (check console)");
+      return;
+    }
+
+    alert("Saved!");
+  } catch (e) {
+    console.log("FETCH ERROR:", e);
+    alert("Save failed (network)");
+  }
+});
 
 window.addEventListener("resize", () => {
   camera.aspect = window.innerWidth / window.innerHeight;
