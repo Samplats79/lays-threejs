@@ -484,7 +484,24 @@ function captureCanvasImage() {
   try {
     controls.update();
     renderer.render(scene, camera);
-    return renderer.domElement.toDataURL("image/png");
+
+    const srcCanvas = renderer.domElement;
+    const sw = srcCanvas.width || 1;
+    const sh = srcCanvas.height || 1;
+
+    const targetW = 900;
+    const scale = Math.min(1, targetW / sw);
+    const tw = Math.max(1, Math.round(sw * scale));
+    const th = Math.max(1, Math.round(sh * scale));
+
+    const out = document.createElement("canvas");
+    out.width = tw;
+    out.height = th;
+
+    const ctx = out.getContext("2d");
+    ctx.drawImage(srcCanvas, 0, 0, tw, th);
+
+    return out.toDataURL("image/jpeg", 0.75);
   } catch {
     return "";
   }
