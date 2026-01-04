@@ -3,12 +3,34 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 
+function normalizeBase(url) {
+  return (url || "").trim().replace(/\/+$/, "");
+}
+
+const params = new URLSearchParams(window.location.search);
+const tokenFromUrl = params.get("token");
+
+if (tokenFromUrl) {
+  localStorage.setItem("token", tokenFromUrl);
+  params.delete("token");
+
+  const newUrl =
+    window.location.pathname +
+    (params.toString() ? `?${params.toString()}` : "");
+  window.history.replaceState({}, "", newUrl);
+}
+
 const canvasEl = document.querySelector("#app");
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xffffff);
 
-const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 200);
+const camera = new THREE.PerspectiveCamera(
+  45,
+  window.innerWidth / window.innerHeight,
+  0.1,
+  200
+);
 camera.position.set(0, 1.2, 3.2);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true, canvas: canvasEl });
@@ -141,7 +163,9 @@ function applyBagColor(hex) {
 function setupBaseCanvasFromDecal() {
   if (!decalMesh) return false;
 
-  const mat = Array.isArray(decalMesh.material) ? decalMesh.material[0] : decalMesh.material;
+  const mat = Array.isArray(decalMesh.material)
+    ? decalMesh.material[0]
+    : decalMesh.material;
   if (!mat || !mat.map) return false;
 
   const img = mat.map.image;
@@ -186,7 +210,8 @@ function redrawTextureOverlay() {
 
   applyBagColor(colorMap[bagColor] || "#FFD000");
 
-  if (!decalMesh || !baseCanvas || !baseCtx || !originalMapImage || !decalUVBounds) return;
+  if (!decalMesh || !baseCanvas || !baseCtx || !originalMapImage || !decalUVBounds)
+    return;
 
   baseCtx.clearRect(0, 0, baseCanvas.width, baseCanvas.height);
   baseCtx.drawImage(originalMapImage, 0, 0, baseCanvas.width, baseCanvas.height);
@@ -317,10 +342,7 @@ function animate() {
 animate();
 
 function apiBase() {
-  const raw = (import.meta.env.VITE_API_URL || "").trim().replace(/\/$/, "");
-  if (!raw) return "";
-  if (raw.endsWith("/api/v1")) return raw;
-  return raw + "/api/v1";
+  return normalizeBase(import.meta.env.VITE_API_URL);
 }
 
 document.getElementById("saveBagBtn")?.addEventListener("click", async () => {
@@ -333,17 +355,13 @@ document.getElementById("saveBagBtn")?.addEventListener("click", async () => {
   const base = apiBase();
   const url = base ? `${base}/bag` : "";
 
-  console.log("API BASE =", base);
-  console.log("POST URL  =", url);
-  console.log("HAS TOKEN =", !!token);
-
   if (!url) {
-    alert("VITE_API_URL ontbreekt op Vercel (Environment Variables).");
+    alert("VITE_API_URL ontbreekt (Environment Variables).");
     return;
   }
 
   if (!token) {
-    alert("Geen token. Log eerst in via Vue (token moet in localStorage staan).");
+    alert("Geen token. Log eerst in via Vue.");
     return;
   }
 
@@ -367,25 +385,22 @@ document.getElementById("saveBagBtn")?.addEventListener("click", async () => {
       }),
     });
 
-    const text = await res.text().catch(() => "");
-    console.log("SAVE STATUS =", res.status);
-    console.log("SAVE BODY   =", text);
+    const data = await res.json().catch(() => ({}));
 
     if (!res.ok) {
-      alert("Save failed. Check Console (SAVE STATUS/BODY).");
+      alert(data?.message || `Save failed (${res.status})`);
       return;
     }
 
     alert("Saved!");
   } catch (e) {
-    console.log("FETCH ERROR =", e);
-    alert("Network error. Check Console (FETCH ERROR).");
+    alert("Network error.");
   }
 });
 
 window.addEventListener("resize", () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth / 1, window.innerHeight / 1);
+  renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 });
