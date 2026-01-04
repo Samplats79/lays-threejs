@@ -15,22 +15,42 @@ if (tokenFromUrl) {
   params.delete("token");
 
   const newUrl =
-    window.location.pathname + (params.toString() ? `?${params.toString()}` : "");
+    window.location.pathname +
+    (params.toString() ? `?${params.toString()}` : "");
   window.history.replaceState({}, "", newUrl);
 }
+
+function vueBase() {
+  return normalizeBase(import.meta.env.VITE_VUE_URL || "https://lays-vue.onrender.com");
+}
+
+document.getElementById("logoutBtn")?.addEventListener("click", () => {
+  localStorage.removeItem("token");
+  window.location.href = vueBase() + "/";
+});
 
 const canvasEl = document.querySelector("#app");
 
 const scene = new THREE.Scene();
 scene.background = null;
 
-const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 200);
+const camera = new THREE.PerspectiveCamera(
+  45,
+  window.innerWidth / window.innerHeight,
+  0.1,
+  200
+);
 camera.position.set(0, 1.2, 3.2);
 
-const renderer = new THREE.WebGLRenderer({ antialias: true, canvas: canvasEl, alpha: true });
+const renderer = new THREE.WebGLRenderer({
+  antialias: true,
+  canvas: canvasEl,
+  alpha: true,
+});
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.setClearColor(0x000000, 0);
 
 scene.add(new THREE.AmbientLight(0xffffff, 0.9));
 
@@ -157,7 +177,9 @@ function applyBagColor(hex) {
 function setupBaseCanvasFromDecal() {
   if (!decalMesh) return false;
 
-  const mat = Array.isArray(decalMesh.material) ? decalMesh.material[0] : decalMesh.material;
+  const mat = Array.isArray(decalMesh.material)
+    ? decalMesh.material[0]
+    : decalMesh.material;
   if (!mat || !mat.map) return false;
 
   const img = mat.map.image;
@@ -202,7 +224,8 @@ function redrawTextureOverlay() {
 
   applyBagColor(colorMap[bagColor] || "#FFD000");
 
-  if (!decalMesh || !baseCanvas || !baseCtx || !originalMapImage || !decalUVBounds) return;
+  if (!decalMesh || !baseCanvas || !baseCtx || !originalMapImage || !decalUVBounds)
+    return;
 
   baseCtx.clearRect(0, 0, baseCanvas.width, baseCanvas.height);
   baseCtx.drawImage(originalMapImage, 0, 0, baseCanvas.width, baseCanvas.height);
@@ -272,140 +295,17 @@ function redrawTextureOverlay() {
   baseTexture.needsUpdate = true;
 }
 
-function apiBase() {
-  return normalizeBase(import.meta.env.VITE_API_URL);
-}
-
-async function saveBag() {
-  const token = localStorage.getItem("token");
-
-  const name = (document.getElementById("bagName")?.value || "").trim();
-  const bagColor = document.getElementById("bagColor")?.value || "yellow";
-  const font = document.getElementById("bagFont")?.value || "bold";
-
-  const base = apiBase();
-  const url = base ? `${base}/bag` : "";
-
-  if (!url) {
-    alert("VITE_API_URL ontbreekt (Environment Variables).");
-    return;
-  }
-
-  if (!token) {
-    alert("Geen token. Log eerst in via Vue.");
-    return;
-  }
-
-  const res = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: "Bearer " + token,
-    },
-    body: JSON.stringify({
-      name,
-      image: "",
-      bagColor,
-      font,
-      pattern: "plain",
-      packaging: "classic",
-      inspiration: "",
-      keyFlavours: [],
-      user: "anonymous",
-    }),
-  });
-
-  const data = await res.json().catch(() => ({}));
-
-  if (!res.ok) {
-    alert(data?.message || `Save failed (${res.status})`);
-    return;
-  }
-
-  alert("Saved!");
-}
-
-const stepTitle = document.getElementById("stepTitle");
-const stepDots = document.getElementById("stepDots");
-const panels = [
-  document.getElementById("step1"),
-  document.getElementById("step2"),
-  document.getElementById("step3"),
-];
-const backBtn = document.getElementById("backBtn");
-const nextBtn = document.getElementById("nextBtn");
-const saveBtn = document.getElementById("saveBagBtn");
-
-const steps = [
-  { title: "1. GIVE YOUR BAG A NAME", cameraZ: 2.9, targetY: 0.95, lockName: false },
-  { title: "2. PICK A COLOR", cameraZ: 3.2, targetY: 0.9, lockName: true },
-  { title: "3. CHOOSE A FONT", cameraZ: 3.2, targetY: 0.9, lockName: true },
-];
-
-let currentStep = 0;
-
-function renderDots() {
-  if (!stepDots) return;
-  stepDots.innerHTML = "";
-  for (let i = 0; i < steps.length; i++) {
-    const d = document.createElement("div");
-    d.className = "stepDot" + (i === currentStep ? " active" : "");
-    stepDots.appendChild(d);
-  }
-}
-
-function setStep(i) {
-  currentStep = Math.max(0, Math.min(steps.length - 1, i));
-
-  for (let p = 0; p < panels.length; p++) {
-    if (panels[p]) panels[p].hidden = p !== currentStep;
-  }
-
-  if (stepTitle) stepTitle.textContent = steps[currentStep].title;
-  renderDots();
-
-  if (backBtn) backBtn.disabled = currentStep === 0;
-
-  const isLast = currentStep === steps.length - 1;
-  if (nextBtn) nextBtn.hidden = isLast;
-  if (saveBtn) saveBtn.hidden = !isLast;
-
+function bindUI() {
   const nameEl = document.getElementById("bagName");
   const colorEl = document.getElementById("bagColor");
   const fontEl = document.getElementById("bagFont");
 
-  if (nameEl) nameEl.disabled = steps[currentStep].lockName;
-  if (colorEl) colorEl.disabled = currentStep !== 1;
-  if (fontEl) fontEl.disabled = currentStep !== 2;
+  const onChange = () => redrawTextureOverlay();
 
-  controls.target.set(0, steps[currentStep].targetY, 0);
-  controls.update();
-
-  const desired = new THREE.Vector3(0, steps[currentStep].targetY, steps[currentStep].cameraZ);
-  camera.position.lerp(desired, 0.35);
+  nameEl?.addEventListener("input", onChange);
+  colorEl?.addEventListener("change", onChange);
+  fontEl?.addEventListener("change", onChange);
 }
-
-backBtn?.addEventListener("click", () => setStep(currentStep - 1));
-nextBtn?.addEventListener("click", () => {
-  if (currentStep === 0) {
-    const name = (document.getElementById("bagName")?.value || "").trim();
-    if (!name) {
-      alert("Kies eerst een naam.");
-      return;
-    }
-  }
-  setStep(currentStep + 1);
-});
-saveBtn?.addEventListener("click", () => saveBag());
-
-document.getElementById("bagName")?.addEventListener("input", () => redrawTextureOverlay());
-document.getElementById("bagColor")?.addEventListener("change", () => redrawTextureOverlay());
-document.getElementById("bagFont")?.addEventListener("change", () => redrawTextureOverlay());
-
-document.getElementById("logoutBtn")?.addEventListener("click", () => {
-  localStorage.removeItem("token");
-  window.location.href = "https://lays-vue.onrender.com/";
-});
 
 loader.load(
   "/models/chipsbag.glb",
@@ -433,14 +333,14 @@ loader.load(
     controls.target.set(0, 0.9, 0);
     controls.update();
 
+    bindUI();
+
     const tryInit = () => {
       const ok = setupBaseCanvasFromDecal();
       redrawTextureOverlay();
       if (!ok) requestAnimationFrame(tryInit);
     };
     tryInit();
-
-    setStep(0);
   },
   undefined,
   (error) => {
@@ -454,6 +354,63 @@ function animate() {
   renderer.render(scene, camera);
 }
 animate();
+
+function apiBase() {
+  return normalizeBase(import.meta.env.VITE_API_URL);
+}
+
+document.getElementById("saveBagBtn")?.addEventListener("click", async () => {
+  const token = localStorage.getItem("token");
+
+  const name = (document.getElementById("bagName")?.value || "").trim();
+  const bagColor = document.getElementById("bagColor")?.value || "yellow";
+  const font = document.getElementById("bagFont")?.value || "bold";
+
+  const base = apiBase();
+  const url = base ? `${base}/bag` : "";
+
+  if (!url) {
+    alert("VITE_API_URL ontbreekt (Environment Variables).");
+    return;
+  }
+
+  if (!token) {
+    alert("Geen token. Log eerst in via Vue.");
+    return;
+  }
+
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + token,
+      },
+      body: JSON.stringify({
+        name,
+        image: "",
+        bagColor,
+        font,
+        pattern: "plain",
+        packaging: "classic",
+        inspiration: "",
+        keyFlavours: [],
+        user: "anonymous",
+      }),
+    });
+
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      alert(data?.message || `Save failed (${res.status})`);
+      return;
+    }
+
+    alert("Saved!");
+  } catch (e) {
+    alert("Network error.");
+  }
+});
 
 window.addEventListener("resize", () => {
   camera.aspect = window.innerWidth / window.innerHeight;

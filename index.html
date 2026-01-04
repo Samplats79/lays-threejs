@@ -3,50 +3,36 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Lays Configurator</title>
+    <title>Lays ThreeJS</title>
   </head>
   <body>
-    <button id="logoutBtn" class="btn outline">Logout</button>
+    <canvas id="app"></canvas>
 
     <div class="ui">
-      <div class="wizardTop">
-        <div id="stepTitle" class="stepTitle">1. GIVE YOUR BAG A NAME</div>
-        <div id="stepDots" class="stepDots"></div>
+      <div class="ui-top">
+        <button id="logoutBtn" class="btn outline">Logout</button>
       </div>
 
-      <div id="step1" class="stepPanel">
-        <label>Bag name</label>
-        <input id="bagName" type="text" placeholder="Bag name" />
-      </div>
+      <label>Bag name</label>
+      <input id="bagName" type="text"/>
 
-      <div id="step2" class="stepPanel" hidden>
-        <label>Color</label>
-        <select id="bagColor">
-          <option value="yellow">yellow</option>
-          <option value="red">red</option>
-          <option value="blue">blue</option>
-          <option value="green">green</option>
-        </select>
-      </div>
+      <label>Color</label>
+      <select id="bagColor">
+        <option value="yellow">yellow</option>
+        <option value="red">red</option>
+        <option value="blue">blue</option>
+        <option value="green">green</option>
+      </select>
 
-      <div id="step3" class="stepPanel" hidden>
-        <label>Font</label>
-        <select id="bagFont">
-          <option value="bold">bold</option>
-          <option value="regular">regular</option>
-          <option value="italic">italic</option>
-        </select>
-      </div>
+      <label>Font</label>
+      <select id="bagFont">
+        <option value="bold">bold</option>
+        <option value="regular">regular</option>
+        <option value="italic">italic</option>
+      </select>
 
-      <div class="wizardActions">
-        <button id="backBtn" class="btn outline" disabled>Back</button>
-        <button id="nextBtn" class="btn solid">Next</button>
-      </div>
-
-      <button id="saveBagBtn" class="btn solid" hidden>Save Bag</button>
+      <button id="saveBagBtn">Save Bag</button>
     </div>
-
-    <canvas id="app"></canvas>
 
     <script type="module" src="/src/main.js"></script>
   </body>
