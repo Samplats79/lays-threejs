@@ -145,3 +145,21 @@ body {
     right: 16px;
   }
 }
+
+.imagePreviewWrap {
+  display: grid;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+#imagePreview {
+  width: 100%;
+  height: 140px;
+  object-fit: contain;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 16px;
+  border: 1px dashed rgba(0, 0, 0, 0.18);
+  padding: 10px;
+  display: none;
+}
+

@@ -21,13 +21,98 @@ if (tokenFromUrl) {
 }
 
 function vueBase() {
-  return normalizeBase(import.meta.env.VITE_VUE_URL || "https://lays-vue.onrender.com");
+  return normalizeBase(
+    import.meta.env.VITE_VUE_URL || "https://lays-vue.onrender.com"
+  );
 }
 
 document.getElementById("logoutBtn")?.addEventListener("click", () => {
   localStorage.removeItem("token");
   window.location.href = vueBase() + "/";
 });
+
+const IMAGE_KEY = "lays_bag_image";
+const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
+
+let bagImageDataUrl = localStorage.getItem(IMAGE_KEY) || "";
+
+function setImageError(msg) {
+  const el = document.getElementById("imageError");
+  if (el) el.textContent = msg || "";
+}
+
+function setPreview(src) {
+  const img = document.getElementById("imagePreview");
+  if (!img) return;
+
+  if (!src) {
+    img.removeAttribute("src");
+    img.style.display = "none";
+    return;
+  }
+
+  img.src = src;
+  img.style.display = "block";
+}
+
+function bindImageUpload() {
+  const input = document.getElementById("bagImage");
+  const removeBtn = document.getElementById("removeImageBtn");
+
+  setPreview(bagImageDataUrl);
+
+  input?.addEventListener("change", () => {
+    setImageError("");
+
+    const file = input.files?.[0];
+    if (!file) return;
+
+    if (!file.type || !file.type.startsWith("image/")) {
+      setImageError("Only image files allowed.");
+      input.value = "";
+      return;
+    }
+
+    if (file.size > MAX_IMAGE_BYTES) {
+      setImageError("Image too large (max 2MB).");
+      input.value = "";
+      return;
+    }
+
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      const result = typeof reader.result === "string" ? reader.result : "";
+      if (!result.startsWith("data:image/")) {
+        setImageError("Invalid image.");
+        input.value = "";
+        return;
+      }
+
+      bagImageDataUrl = result;
+      localStorage.setItem(IMAGE_KEY, bagImageDataUrl);
+      setPreview(bagImageDataUrl);
+
+      redrawTextureOverlay();
+    };
+
+    reader.onerror = () => {
+      setImageError("Could not read file.");
+      input.value = "";
+    };
+
+    reader.readAsDataURL(file);
+  });
+
+  removeBtn?.addEventListener("click", () => {
+    bagImageDataUrl = "";
+    localStorage.removeItem(IMAGE_KEY);
+    setPreview("");
+    if (input) input.value = "";
+    setImageError("");
+    redrawTextureOverlay();
+  });
+}
 
 const canvasEl = document.querySelector("#app");
 
@@ -224,16 +309,17 @@ function redrawTextureOverlay() {
 
   applyBagColor(colorMap[bagColor] || "#FFD000");
 
-  if (!decalMesh || !baseCanvas || !baseCtx || !originalMapImage || !decalUVBounds)
+  if (
+    !decalMesh ||
+    !baseCanvas ||
+    !baseCtx ||
+    !originalMapImage ||
+    !decalUVBounds
+  )
     return;
 
   baseCtx.clearRect(0, 0, baseCanvas.width, baseCanvas.height);
   baseCtx.drawImage(originalMapImage, 0, 0, baseCanvas.width, baseCanvas.height);
-
-  if (!name) {
-    baseTexture.needsUpdate = true;
-    return;
-  }
 
   const w = baseCanvas.width;
   const h = baseCanvas.height;
@@ -253,6 +339,40 @@ function redrawTextureOverlay() {
 
   const rectW = Math.max(1, right - left);
   const rectH = Math.max(1, bottom - top);
+
+  if (bagImageDataUrl) {
+    const img = new Image();
+    img.onload = () => {
+      const maxImgW = Math.floor(rectW * 0.72);
+      const maxImgH = Math.floor(rectH * 0.45);
+
+      const iw = img.naturalWidth || 1;
+      const ih = img.naturalHeight || 1;
+
+      const scale = Math.min(maxImgW / iw, maxImgH / ih);
+      const drawW = Math.floor(iw * scale);
+      const drawH = Math.floor(ih * scale);
+
+      const x = left + Math.floor((rectW - drawW) / 2);
+      const y = top + Math.floor(rectH * 0.22);
+
+      baseCtx.shadowColor = "rgba(0,0,0,0.15)";
+      baseCtx.shadowBlur = Math.floor(rectW * 0.02);
+      baseCtx.drawImage(img, x, y, drawW, drawH);
+
+      drawNameText(name, font, left, top, rectW, rectH);
+      baseTexture.needsUpdate = true;
+    };
+    img.src = bagImageDataUrl;
+    return;
+  }
+
+  drawNameText(name, font, left, top, rectW, rectH);
+  baseTexture.needsUpdate = true;
+}
+
+function drawNameText(name, font, left, top, rectW, rectH) {
+  if (!name) return;
 
   const fontStyle = font === "italic" ? "italic" : "normal";
   const fontWeight = font === "regular" ? "600" : "900";
@@ -283,7 +403,7 @@ function redrawTextureOverlay() {
 
   const x = left + rectW * 0.5;
 
-  const textPosV = 0.93;
+  const textPosV = bagImageDataUrl ? 0.82 : 0.93;
   const safeTop = 0.05;
   const safeBottom = 0.02;
 
@@ -291,8 +411,6 @@ function redrawTextureOverlay() {
   const y = top + rectH * safePos;
 
   baseCtx.fillText(name, x, y);
-
-  baseTexture.needsUpdate = true;
 }
 
 function bindUI() {
@@ -305,6 +423,8 @@ function bindUI() {
   nameEl?.addEventListener("input", onChange);
   colorEl?.addEventListener("change", onChange);
   fontEl?.addEventListener("change", onChange);
+
+  bindImageUpload();
 }
 
 loader.load(
@@ -388,7 +508,7 @@ document.getElementById("saveBagBtn")?.addEventListener("click", async () => {
       },
       body: JSON.stringify({
         name,
-        image: "",
+        image: bagImageDataUrl,
         bagColor,
         font,
         pattern: "plain",

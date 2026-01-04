@@ -31,6 +31,16 @@
         <option value="italic">italic</option>
       </select>
 
+      <label>Image upload</label>
+      <input id="bagImage" type="file" accept="image/*" />
+
+      <div id="imageError" style="font-size:12px;color:#b10f0f;min-height:16px;"></div>
+
+      <div class="imagePreviewWrap">
+        <img id="imagePreview" alt="preview" />
+        <button id="removeImageBtn" class="btn outline" type="button">Remove image</button>
+      </div>
+
       <button id="saveBagBtn">Save Bag</button>
     </div>
 
