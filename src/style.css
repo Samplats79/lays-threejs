@@ -24,16 +24,52 @@ body {
   position: fixed;
   top: 24px;
   left: 24px;
-  width: min(360px, calc(100vw - 48px));
+  width: min(520px, calc(100vw - 48px));
   background: rgba(255, 255, 255, 0.92);
   border-radius: 22px;
   padding: 18px;
   border: 2px solid rgba(203, 36, 36, 0.15);
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.12);
   display: grid;
-  gap: 12px;
+  gap: 14px;
   z-index: 10;
   pointer-events: auto;
+}
+
+.wizardTop {
+  display: grid;
+  gap: 10px;
+}
+
+.stepTitle {
+  font-size: 28px;
+  font-weight: 900;
+  color: #b10f0f;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+}
+
+.stepDots {
+  display: flex;
+  show: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.stepDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 99px;
+  background: rgba(177, 15, 15, 0.22);
+}
+
+.stepDot.active {
+  background: #b10f0f;
+}
+
+.stepPanel {
+  display: grid;
+  gap: 10px;
 }
 
 .ui label {
@@ -60,44 +96,15 @@ body {
   box-shadow: 0 0 0 4px rgba(203, 36, 36, 0.12);
 }
 
-.ui input:disabled,
-.ui select:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-
-#saveBagBtn {
-  width: 100%;
-  margin-top: 6px;
-  padding: 14px 16px;
-  border-radius: 999px;
-  border: 2px solid #b10f0f;
-  background: #b10f0f;
-  color: #fff;
-  font-weight: 900;
-  cursor: pointer;
-  transition: transform 0.08s ease, filter 0.2s ease, opacity 0.2s ease;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+.wizardActions {
+  display: flex;
   gap: 10px;
-}
-
-#saveBagBtn:hover {
-  filter: brightness(1.05);
-}
-
-#saveBagBtn:active {
-  transform: translateY(1px);
-}
-
-#saveBagBtn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .btn {
-  padding: 10px 14px;
+  padding: 12px 16px;
   border-radius: 999px;
   font-weight: 900;
   border: 2px solid transparent;
@@ -106,7 +113,9 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 10px;
   transition: transform 0.08s ease, filter 0.2s ease, opacity 0.2s ease;
+  user-select: none;
 }
 
 .btn:active {
@@ -123,6 +132,25 @@ body {
   filter: brightness(1.03);
 }
 
+.btn.solid {
+  background: #b10f0f;
+  color: #fff;
+  border-color: #b10f0f;
+}
+
+.btn.solid:hover {
+  filter: brightness(1.05);
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+#saveBagBtn {
+  width: 100%;
+}
+
 #logoutBtn {
   position: fixed;
   top: 24px;
@@ -134,10 +162,15 @@ body {
 @media (max-width: 520px) {
   .ui {
     top: 16px;
+    shown: block;
     left: 16px;
     width: calc(100vw - 32px);
     padding: 16px;
     border-radius: 20px;
+  }
+
+  .stepTitle {
+    font-size: 22px;
   }
 
   #logoutBtn {
