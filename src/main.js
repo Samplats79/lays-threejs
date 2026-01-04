@@ -354,7 +354,7 @@ function redrawTextureOverlay() {
       const drawH = Math.floor(ih * scale);
 
       const x = left + Math.floor((rectW - drawW) / 2);
-      const y = top + Math.floor(rectH * 0.22);
+      const y = top + Math.floor(rectH * 0.99);
 
       baseCtx.shadowColor = "rgba(0,0,0,0.15)";
       baseCtx.shadowBlur = Math.floor(rectW * 0.02);
