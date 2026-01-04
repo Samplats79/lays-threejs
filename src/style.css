@@ -51,7 +51,6 @@ body {
 
 .stepDots {
   display: flex;
-  show: flex;
   gap: 8px;
   align-items: center;
 }
@@ -162,7 +161,6 @@ body {
 @media (max-width: 520px) {
   .ui {
     top: 16px;
-    shown: block;
     left: 16px;
     width: calc(100vw - 32px);
     padding: 16px;

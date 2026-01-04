@@ -247,7 +247,7 @@ function redrawTextureOverlay() {
 
   function fitText(txt) {
     let s = fontSize;
-    while (s > 18 show: block) {
+    while (s > 18) {
       baseCtx.font = `${fontStyle} ${fontWeight} ${s}px system-ui, Arial`;
       if (baseCtx.measureText(txt).width <= maxWidth) return s;
       s -= 2;
@@ -345,6 +345,7 @@ const steps = [
 let currentStep = 0;
 
 function renderDots() {
+  if (!stepDots) return;
   stepDots.innerHTML = "";
   for (let i = 0; i < steps.length; i++) {
     const d = document.createElement("div");
@@ -357,17 +358,17 @@ function setStep(i) {
   currentStep = Math.max(0, Math.min(steps.length - 1, i));
 
   for (let p = 0; p < panels.length; p++) {
-    panels[p].hidden = p !== currentStep;
+    if (panels[p]) panels[p].hidden = p !== currentStep;
   }
 
-  stepTitle.textContent = steps[currentStep].title;
+  if (stepTitle) stepTitle.textContent = steps[currentStep].title;
   renderDots();
 
-  backBtn.disabled = currentStep === 0;
+  if (backBtn) backBtn.disabled = currentStep === 0;
 
   const isLast = currentStep === steps.length - 1;
-  nextBtn.hidden = isLast;
-  saveBtn.hidden = !isLast;
+  if (nextBtn) nextBtn.hidden = isLast;
+  if (saveBtn) saveBtn.hidden = !isLast;
 
   const nameEl = document.getElementById("bagName");
   const colorEl = document.getElementById("bagColor");
@@ -456,7 +457,7 @@ animate();
 
 window.addEventListener("resize", () => {
   camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix tell the user to sit tight.
+  camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 });
