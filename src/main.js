@@ -125,7 +125,6 @@ const camera = new THREE.PerspectiveCamera(
   0.1,
   200
 );
-camera.position.set(0, 1.2, 3.2);
 
 const renderer = new THREE.WebGLRenderer({
   antialias: true,
@@ -150,7 +149,10 @@ scene.add(dir2);
 
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
-controls.target.set(0, 0.9, 0);
+
+controls.enablePan = false;
+controls.enableZoom = false;
+controls.enableRotate = false;
 
 const loader = new GLTFLoader();
 
@@ -428,6 +430,13 @@ function bindUI() {
   bindImageUpload();
 }
 
+function setFrontView() {
+  camera.position.set(0, 0.9, 3.1);
+  controls.target.set(0, 0.9, 0);
+  camera.lookAt(controls.target);
+  controls.update();
+}
+
 loader.load(
   "/models/chipsbag.glb",
   (gltf) => {
@@ -453,15 +462,7 @@ loader.load(
 
     bagRoot.rotation.set(0, 0, 0);
 
-    controls.enableRotate = true;
-    controls.minAzimuthAngle = -Math.PI / 8;
-    controls.maxAzimuthAngle = Math.PI / 8;
-    controls.minPolarAngle = Math.PI / 2 - Math.PI / 10;
-    controls.maxPolarAngle = Math.PI / 2 + Math.PI / 10;
-
-    camera.position.set(0, 1.2, 3.2);
-    controls.target.set(0, 0.9, 0);
-    controls.update();
+    setFrontView();
 
     bindUI();
 
@@ -480,7 +481,14 @@ loader.load(
 
 function animate() {
   requestAnimationFrame(animate);
-  controls.update();
+
+  if (bagRoot) {
+    bagRoot.rotation.x = 0;
+    bagRoot.rotation.z = 0;
+  }
+
+  setFrontView();
+
   renderer.render(scene, camera);
 }
 animate();
@@ -526,8 +534,6 @@ function getObjectScreenRect(object3d) {
     if (sy > maxY) maxY = sy;
   }
 
-  if (!Number.isFinite(minX) || !Number.isFinite(minY)) return null;
-
   const pad = Math.max(18, Math.round(Math.min(w, h) * 0.02));
 
   const x = Math.max(0, Math.floor(minX - pad));
@@ -545,7 +551,6 @@ function captureCanvasImage() {
   try {
     if (!bagRoot) return "";
 
-    controls.update();
     renderer.render(scene, camera);
 
     const srcCanvas = renderer.domElement;
