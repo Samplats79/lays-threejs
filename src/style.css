@@ -1,65 +1,113 @@
-* { 
-  margin: 0; 
+* {
+  margin: 0;
   padding: 0;
-  box-sizing: border-box; 
+  box-sizing: border-box;
 }
 
 html, body {
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background: #ffffff;
-  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+  font-family: "Poppins", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  background: linear-gradient(180deg, #ffd400 0%, #fff2b3 100%);
 }
 
 #app {
   width: 100vw;
   height: 100vh;
   display: block;
+  pointer-events: none;
 }
 
 .ui {
   position: fixed;
   top: 24px;
   left: 24px;
-  width: 320px;
-  background: rgba(255,255,255,0.9);
-  border-radius: 18px;
+  width: min(360px, calc(100vw - 48px));
+  background: rgba(255, 255, 255, 0.92);
+  border-radius: 22px;
   padding: 18px;
-  box-shadow: 0 18px 40px rgba(0,0,0,0.12);
+  border: 2px solid rgba(203, 36, 36, 0.15);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.12);
   display: grid;
-  gap: 10px;
+  gap: 12px;
   z-index: 10;
+  pointer-events: auto;
+}
+
+.ui h2, .ui h3 {
+  margin: 0;
+  font-weight: 900;
+  color: #b10f0f;
+  letter-spacing: -0.02em;
 }
 
 .ui label {
-  font-size: 13px;
-  opacity: 0.7;
+  font-size: 14px;
+  font-weight: 800;
+  color: rgba(0, 0, 0, 0.8);
 }
 
-.ui input, .ui select {
+.ui input,
+.ui select {
+  width: 100%;
   padding: 12px 14px;
-  border-radius: 12px;
-  border: 1px solid rgba(0,0,0,0.15);
-  font-size: 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(0, 0, 0, 0.18);
   outline: none;
+  background: #fff;
+  font-weight: 600;
+  transition: box-shadow 0.2s, border-color 0.2s, opacity 0.2s;
+}
+
+.ui input:focus,
+.ui select:focus {
+  border-color: rgba(203, 36, 36, 0.35);
+  box-shadow: 0 0 0 4px rgba(203, 36, 36, 0.12);
+}
+
+.ui input:disabled,
+.ui select:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 #saveBagBtn {
-  padding: 12px 14px;
-  border-radius: 12px;
-  border: 1px solid rgba(0,0,0,0.25);
-  background: #fff;
+  width: 100%;
+  margin-top: 6px;
+  padding: 14px 16px;
+  border-radius: 999px;
+  border: 2px solid #b10f0f;
+  background: #b10f0f;
+  color: #fff;
+  font-weight: 900;
   cursor: pointer;
-  font-size: 14px;
+  transition: transform 0.08s ease, filter 0.2s ease, opacity 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
 }
 
-.ui {
-  pointer-events: auto;
-  z-index: 10;
+#saveBagBtn:hover {
+  filter: brightness(1.05);
 }
 
-#app {
-  pointer-events: none;
+#saveBagBtn:active {
+  transform: translateY(1px);
 }
 
+#saveBagBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@media (max-width: 520px) {
+  .ui {
+    top: 16px;
+    left: 16px;
+    width: calc(100vw - 32px);
+    padding: 16px;
+    border-radius: 20px;
+  }
+}
