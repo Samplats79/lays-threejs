@@ -20,6 +20,15 @@ if (tokenFromUrl) {
   window.history.replaceState({}, "", newUrl);
 }
 
+function vueBase() {
+  return normalizeBase(import.meta.env.VITE_VUE_URL || "https://lays-vue.onrender.com");
+}
+
+document.getElementById("logoutBtn")?.addEventListener("click", () => {
+  localStorage.removeItem("token");
+  window.location.href = vueBase() + "/";
+});
+
 const canvasEl = document.querySelector("#app");
 
 const scene = new THREE.Scene();

@@ -35,11 +35,9 @@ html, body {
   pointer-events: auto;
 }
 
-.ui h2, .ui h3 {
-  margin: 0;
-  font-weight: 900;
-  color: #b10f0f;
-  letter-spacing: -0.02em;
+.ui-top {
+  display: flex;
+  justify-content: flex-end;
 }
 
 .ui label {
@@ -100,6 +98,33 @@ html, body {
 #saveBagBtn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.btn {
+  padding: 10px 14px;
+  border-radius: 999px;
+  font-weight: 900;
+  border: 2px solid transparent;
+  cursor: pointer;
+  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.08s ease, filter 0.2s ease, opacity 0.2s ease;
+}
+
+.btn:active {
+  transform: translateY(1px);
+}
+
+.btn.outline {
+  color: #b10f0f;
+  border-color: rgba(177, 15, 15, 0.7);
+  background: rgba(255, 255, 255, 0.85);
+}
+
+.btn.outline:hover {
+  filter: brightness(1.03);
 }
 
 @media (max-width: 520px) {

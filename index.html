@@ -6,13 +6,19 @@
     <title>Lays ThreeJS</title>
   </head>
   <body>
+    <canvas id="app"></canvas>
+
     <div class="ui">
+      <div class="ui-top">
+        <button id="logoutBtn" class="btn outline">Logout</button>
+      </div>
+
       <label>Bag name</label>
-      <input id="bagName" type="text" value="My First Lays Bag" />
+      <input id="bagName" type="text"/>
 
       <label>Color</label>
       <select id="bagColor">
-        <option value="yellow" selected>yellow</option>
+        <option value="yellow">yellow</option>
         <option value="red">red</option>
         <option value="blue">blue</option>
         <option value="green">green</option>
@@ -20,15 +26,14 @@
 
       <label>Font</label>
       <select id="bagFont">
-        <option value="bold" selected>bold</option>
+        <option value="bold">bold</option>
         <option value="regular">regular</option>
         <option value="italic">italic</option>
       </select>
 
-      <button id="saveBagBtn" type="button">Save Bag</button>
+      <button id="saveBagBtn">Save Bag</button>
     </div>
 
-    <canvas id="app"></canvas>
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>
