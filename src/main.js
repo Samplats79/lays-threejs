@@ -13,7 +13,6 @@ const tokenFromUrl = params.get("token");
 if (tokenFromUrl) {
   localStorage.setItem("token", tokenFromUrl);
   params.delete("token");
-
   const newUrl =
     window.location.pathname +
     (params.toString() ? `?${params.toString()}` : "");
@@ -210,8 +209,7 @@ function redrawTextureOverlay() {
 
   applyBagColor(colorMap[bagColor] || "#FFD000");
 
-  if (!decalMesh || !baseCanvas || !baseCtx || !originalMapImage || !decalUVBounds)
-    return;
+  if (!decalMesh || !baseCanvas || !baseCtx || !originalMapImage || !decalUVBounds) return;
 
   baseCtx.clearRect(0, 0, baseCanvas.width, baseCanvas.height);
   baseCtx.drawImage(originalMapImage, 0, 0, baseCanvas.width, baseCanvas.height);
@@ -281,16 +279,131 @@ function redrawTextureOverlay() {
   baseTexture.needsUpdate = true;
 }
 
-function bindUI() {
-  const nameEl = document.getElementById("bagName");
-  const colorEl = document.getElementById("bagColor");
-  const fontEl = document.getElementById("bagFont");
+function apiBase() {
+  return normalizeBase(import.meta.env.VITE_API_URL);
+}
 
-  const onChange = () => redrawTextureOverlay();
+let currentStep = 1;
+let isCamAnimating = false;
 
-  nameEl?.addEventListener("input", onChange);
-  colorEl?.addEventListener("change", onChange);
-  fontEl?.addEventListener("change", onChange);
+function getUI() {
+  return {
+    nameEl: document.getElementById("bagName"),
+    colorEl: document.getElementById("bagColor"),
+    fontEl: document.getElementById("bagFont"),
+    saveBtn: document.getElementById("saveBagBtn"),
+  };
+}
+
+function ensureWizardButtons() {
+  if (document.getElementById("wizardNav")) return;
+
+  const { saveBtn } = getUI();
+  if (!saveBtn) return;
+
+  const nav = document.createElement("div");
+  nav.id = "wizardNav";
+  nav.style.display = "flex";
+  nav.style.gap = "10px";
+  nav.style.marginTop = "10px";
+
+  const back = document.createElement("button");
+  back.id = "backStepBtn";
+  back.type = "button";
+  back.textContent = "Back";
+
+  const next = document.createElement("button");
+  next.id = "nextStepBtn";
+  next.type = "button";
+  next.textContent = "Next";
+
+  saveBtn.parentNode.insertBefore(nav, saveBtn.nextSibling);
+  nav.appendChild(back);
+  nav.appendChild(next);
+
+  back.addEventListener("click", () => setStep(currentStep - 1));
+  next.addEventListener("click", () => setStep(currentStep + 1));
+}
+
+function setStep(step) {
+  const maxStep = 4;
+  currentStep = Math.max(1, Math.min(maxStep, step));
+
+  const { nameEl, colorEl, fontEl, saveBtn } = getUI();
+  const backBtn = document.getElementById("backStepBtn");
+  const nextBtn = document.getElementById("nextStepBtn");
+
+  if (nameEl) nameEl.disabled = currentStep !== 1;
+  if (colorEl) colorEl.disabled = currentStep !== 2;
+  if (fontEl) fontEl.disabled = currentStep !== 3;
+  if (saveBtn) saveBtn.disabled = currentStep !== 4;
+
+  if (backBtn) backBtn.disabled = currentStep === 1;
+  if (nextBtn) nextBtn.disabled = currentStep === 4;
+
+  if (currentStep === 1) animateCameraTo({ pos: new THREE.Vector3(0, 1.2, 3.2), target: new THREE.Vector3(0, 0.9, 0) });
+  if (currentStep === 2) animateCameraTo({ pos: new THREE.Vector3(0, 1.05, 1.75), target: new THREE.Vector3(0, 0.9, 0) });
+  if (currentStep === 3) animateCameraTo({ pos: new THREE.Vector3(0.35, 1.05, 1.75), target: new THREE.Vector3(0, 0.9, 0) });
+  if (currentStep === 4) animateCameraTo({ pos: new THREE.Vector3(0, 1.15, 2.3), target: new THREE.Vector3(0, 0.9, 0) });
+
+  redrawTextureOverlay();
+}
+
+function animateCameraTo({ pos, target }, duration = 650) {
+  if (!pos || !target) return;
+  isCamAnimating = true;
+  controls.enabled = false;
+
+  const startPos = camera.position.clone();
+  const startTarget = controls.target.clone();
+
+  const start = performance.now();
+
+  function ease(t) {
+    return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+  }
+
+  function tick(now) {
+    const t = Math.min(1, (now - start) / duration);
+    const e = ease(t);
+
+    camera.position.lerpVectors(startPos, pos, e);
+    controls.target.lerpVectors(startTarget, target, e);
+
+    controls.update();
+
+    if (t < 1) {
+      requestAnimationFrame(tick);
+    } else {
+      controls.enabled = true;
+      isCamAnimating = false;
+    }
+  }
+
+  requestAnimationFrame(tick);
+}
+
+function bindWizardUI() {
+  const { nameEl, colorEl, fontEl } = getUI();
+
+  const onName = () => {
+    if (currentStep !== 1) return;
+    redrawTextureOverlay();
+  };
+
+  const onColor = () => {
+    if (currentStep !== 2) return;
+    redrawTextureOverlay();
+  };
+
+  const onFont = () => {
+    if (currentStep !== 3) return;
+    redrawTextureOverlay();
+  };
+
+  nameEl?.addEventListener("input", onName);
+  colorEl?.addEventListener("change", onColor);
+  fontEl?.addEventListener("change", onFont);
 }
 
 loader.load(
@@ -319,7 +432,8 @@ loader.load(
     controls.target.set(0, 0.9, 0);
     controls.update();
 
-    bindUI();
+    ensureWizardButtons();
+    bindWizardUI();
 
     const tryInit = () => {
       const ok = setupBaseCanvasFromDecal();
@@ -327,6 +441,8 @@ loader.load(
       if (!ok) requestAnimationFrame(tryInit);
     };
     tryInit();
+
+    setStep(1);
   },
   undefined,
   (error) => {
@@ -336,14 +452,10 @@ loader.load(
 
 function animate() {
   requestAnimationFrame(animate);
-  controls.update();
+  if (!isCamAnimating) controls.update();
   renderer.render(scene, camera);
 }
 animate();
-
-function apiBase() {
-  return normalizeBase(import.meta.env.VITE_API_URL);
-}
 
 document.getElementById("saveBagBtn")?.addEventListener("click", async () => {
   const token = localStorage.getItem("token");
@@ -362,6 +474,11 @@ document.getElementById("saveBagBtn")?.addEventListener("click", async () => {
 
   if (!token) {
     alert("Geen token. Log eerst in via Vue.");
+    return;
+  }
+
+  if (!name) {
+    alert("Geef eerst een naam aan je bag.");
     return;
   }
 
