@@ -23,7 +23,7 @@ if (tokenFromUrl) {
 const canvasEl = document.querySelector("#app");
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0xffffff);
+scene.background = null;
 
 const camera = new THREE.PerspectiveCamera(
   45,
@@ -33,10 +33,15 @@ const camera = new THREE.PerspectiveCamera(
 );
 camera.position.set(0, 1.2, 3.2);
 
-const renderer = new THREE.WebGLRenderer({ antialias: true, canvas: canvasEl });
+const renderer = new THREE.WebGLRenderer({
+  antialias: true,
+  canvas: canvasEl,
+  alpha: true,
+});
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.setClearColor(0x000000, 0);
 
 scene.add(new THREE.AmbientLight(0xffffff, 0.9));
 
