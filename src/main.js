@@ -355,7 +355,7 @@ function redrawTextureOverlay() {
       const drawH = Math.floor(ih * scale);
 
       const x = left + Math.floor((rectW - drawW) / 2);
-      const y = top + Math.floor(rectH * 0.50);
+      const y = top + Math.floor(rectH * 0.5);
 
       baseCtx.shadowColor = "rgba(0,0,0,0.15)";
       baseCtx.shadowBlur = Math.floor(rectW * 0.02);
@@ -451,6 +451,15 @@ loader.load(
 
     bagRoot.position.y += 0.9;
 
+    bagRoot.rotation.set(0, 0, 0);
+
+    controls.enableRotate = true;
+    controls.minAzimuthAngle = -Math.PI / 8;
+    controls.maxAzimuthAngle = Math.PI / 8;
+    controls.minPolarAngle = Math.PI / 2 - Math.PI / 10;
+    controls.maxPolarAngle = Math.PI / 2 + Math.PI / 10;
+
+    camera.position.set(0, 1.2, 3.2);
     controls.target.set(0, 0.9, 0);
     controls.update();
 
@@ -480,28 +489,95 @@ function apiBase() {
   return normalizeBase(import.meta.env.VITE_API_URL);
 }
 
+function getObjectScreenRect(object3d) {
+  if (!object3d) return null;
+
+  const box = new THREE.Box3().setFromObject(object3d);
+  if (!Number.isFinite(box.min.x) || !Number.isFinite(box.max.x)) return null;
+
+  const corners = [
+    new THREE.Vector3(box.min.x, box.min.y, box.min.z),
+    new THREE.Vector3(box.min.x, box.min.y, box.max.z),
+    new THREE.Vector3(box.min.x, box.max.y, box.min.z),
+    new THREE.Vector3(box.min.x, box.max.y, box.max.z),
+    new THREE.Vector3(box.max.x, box.min.y, box.min.z),
+    new THREE.Vector3(box.max.x, box.min.y, box.max.z),
+    new THREE.Vector3(box.max.x, box.max.y, box.min.z),
+    new THREE.Vector3(box.max.x, box.max.y, box.max.z),
+  ];
+
+  let minX = Infinity,
+    minY = Infinity,
+    maxX = -Infinity,
+    maxY = -Infinity;
+
+  const w = renderer.domElement.width || 1;
+  const h = renderer.domElement.height || 1;
+
+  for (const v of corners) {
+    v.project(camera);
+
+    const sx = (v.x * 0.5 + 0.5) * w;
+    const sy = (-v.y * 0.5 + 0.5) * h;
+
+    if (sx < minX) minX = sx;
+    if (sy < minY) minY = sy;
+    if (sx > maxX) maxX = sx;
+    if (sy > maxY) maxY = sy;
+  }
+
+  if (!Number.isFinite(minX) || !Number.isFinite(minY)) return null;
+
+  const pad = Math.max(18, Math.round(Math.min(w, h) * 0.02));
+
+  const x = Math.max(0, Math.floor(minX - pad));
+  const y = Math.max(0, Math.floor(minY - pad));
+  const x2 = Math.min(w, Math.ceil(maxX + pad));
+  const y2 = Math.min(h, Math.ceil(maxY + pad));
+
+  const cw = Math.max(1, x2 - x);
+  const ch = Math.max(1, y2 - y);
+
+  return { x, y, w: cw, h: ch };
+}
+
 function captureCanvasImage() {
   try {
+    if (!bagRoot) return "";
+
     controls.update();
     renderer.render(scene, camera);
 
     const srcCanvas = renderer.domElement;
-    const sw = srcCanvas.width || 1;
-    const sh = srcCanvas.height || 1;
+    const rect = getObjectScreenRect(bagRoot);
+    if (!rect) return "";
 
-    const targetW = 900;
-    const scale = Math.min(1, targetW / sw);
-    const tw = Math.max(1, Math.round(sw * scale));
-    const th = Math.max(1, Math.round(sh * scale));
+    const maxSide = 700;
+    const scale = Math.min(1, maxSide / Math.max(rect.w, rect.h));
 
     const out = document.createElement("canvas");
-    out.width = tw;
-    out.height = th;
+    out.width = Math.max(1, Math.round(rect.w * scale));
+    out.height = Math.max(1, Math.round(rect.h * scale));
 
     const ctx = out.getContext("2d");
-    ctx.drawImage(srcCanvas, 0, 0, tw, th);
+    ctx.clearRect(0, 0, out.width, out.height);
 
-    return out.toDataURL("image/jpeg", 0.75);
+    ctx.drawImage(
+      srcCanvas,
+      rect.x,
+      rect.y,
+      rect.w,
+      rect.h,
+      0,
+      0,
+      out.width,
+      out.height
+    );
+
+    const webp = out.toDataURL("image/webp", 0.85);
+    if (webp && webp.startsWith("data:image/webp")) return webp;
+
+    return out.toDataURL("image/png");
   } catch {
     return "";
   }
@@ -526,6 +602,11 @@ document.getElementById("saveBagBtn")?.addEventListener("click", async () => {
 
   if (!token) {
     alert("Geen token. Log eerst in via Vue.");
+    return;
+  }
+
+  if (!screenshot) {
+    alert("Screenshot failed.");
     return;
   }
 
