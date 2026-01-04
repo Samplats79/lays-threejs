@@ -131,6 +131,7 @@ const renderer = new THREE.WebGLRenderer({
   antialias: true,
   canvas: canvasEl,
   alpha: true,
+  preserveDrawingBuffer: true,
 });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -354,7 +355,7 @@ function redrawTextureOverlay() {
       const drawH = Math.floor(ih * scale);
 
       const x = left + Math.floor((rectW - drawW) / 2);
-      const y = top + Math.floor(rectH * 0.99);
+      const y = top + Math.floor(rectH * 0.50);
 
       baseCtx.shadowColor = "rgba(0,0,0,0.15)";
       baseCtx.shadowBlur = Math.floor(rectW * 0.02);
@@ -479,12 +480,24 @@ function apiBase() {
   return normalizeBase(import.meta.env.VITE_API_URL);
 }
 
+function captureCanvasImage() {
+  try {
+    controls.update();
+    renderer.render(scene, camera);
+    return renderer.domElement.toDataURL("image/png");
+  } catch {
+    return "";
+  }
+}
+
 document.getElementById("saveBagBtn")?.addEventListener("click", async () => {
   const token = localStorage.getItem("token");
 
   const name = (document.getElementById("bagName")?.value || "").trim();
   const bagColor = document.getElementById("bagColor")?.value || "yellow";
   const font = document.getElementById("bagFont")?.value || "bold";
+
+  const screenshot = captureCanvasImage();
 
   const base = apiBase();
   const url = base ? `${base}/bag` : "";
@@ -508,7 +521,7 @@ document.getElementById("saveBagBtn")?.addEventListener("click", async () => {
       },
       body: JSON.stringify({
         name,
-        image: bagImageDataUrl,
+        image: screenshot,
         bagColor,
         font,
         pattern: "plain",
