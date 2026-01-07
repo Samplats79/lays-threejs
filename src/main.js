@@ -180,6 +180,9 @@ const loader = new GLTFLoader();
 let bagRoot = null;
 let decalMesh = null;
 
+// ✅ BELANGRIJK: hier bewaren we de vaste originele size (maxAxis) van het model
+let bagBaseMaxAxis = null;
+
 let baseCanvas = null;
 let baseCtx = null;
 let baseTexture = null;
@@ -481,30 +484,26 @@ renderer.domElement.addEventListener("pointerleave", () => {
 });
 
 function applyBagLayout() {
-  if (!bagRoot) return;
+  if (!bagRoot || !bagBaseMaxAxis) return;
 
-  const box = new THREE.Box3().setFromObject(bagRoot);
-  const size = new THREE.Vector3();
-  box.getSize(size);
-
-  const maxAxis = Math.max(size.x, size.y, size.z);
-
-  let scale = 1.9 / maxAxis;
+  // ✅ we gebruiken altijd dezelfde originele maxAxis (niet degene van het geschaalde object)
+  let target = 1.9;
   let offsetX = 0;
   let offsetY = 0.9;
 
   if (isTabletView()) {
-    scale = 1.4 / maxAxis;
+    target = 1.4;
     offsetX = 0.6;
     offsetY = 1.1;
   }
 
   if (isMobileView()) {
-    scale = 1.25 / maxAxis;
+    target = 1.25;
     offsetX = 0.05;
     offsetY = 1.05;
   }
 
+  const scale = target / bagBaseMaxAxis;
   bagRoot.scale.setScalar(scale);
   bagRoot.position.x = offsetX;
   bagRoot.position.y = offsetY;
@@ -577,10 +576,16 @@ loader.load(
 
     decalMesh = pickDecalMesh(bagRoot);
 
+    // ✅ center object
     const box = new THREE.Box3().setFromObject(bagRoot);
     const center = new THREE.Vector3();
     box.getCenter(center);
     bagRoot.position.sub(center);
+
+    // ✅ 1x vaste originele maxAxis opslaan (NIET op resize opnieuw berekenen)
+    const size = new THREE.Vector3();
+    box.getSize(size);
+    bagBaseMaxAxis = Math.max(size.x, size.y, size.z);
 
     applyBagLayout();
 
