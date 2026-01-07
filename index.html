@@ -17,38 +17,54 @@
       <button id="logoutBtn" class="btn outline">Logout</button>
     </header>
 
-    <div class="ui">
-      <label>Bag name</label>
-      <input id="bagName" type="text" />
-
-      <label>Color</label>
-      <select id="bagColor">
-        <option value="yellow">yellow</option>
-        <option value="red">red</option>
-        <option value="blue">blue</option>
-        <option value="green">green</option>
-      </select>
-
-      <label>Font</label>
-      <select id="bagFont">
-        <option value="bold">bold</option>
-        <option value="regular">regular</option>
-        <option value="italic">italic</option>
-      </select>
-
-      <label>Image upload</label>
-      <input id="bagImage" type="file" accept="image/*" />
-
-      <div id="imageError" style="font-size:12px;color:#b10f0f;min-height:16px;"></div>
-
-      <div class="imagePreviewWrap">
-        <img id="imagePreview" alt="preview" />
-        <button id="removeImageBtn" class="btn outline" type="button">
-          Remove image
-        </button>
+    <div class="ui" id="uiPanel">
+      <div class="step" data-step="1">
+        <label>Bag name</label>
+        <input id="bagName" type="text" />
       </div>
 
-      <button id="saveBagBtn">Save Bag</button>
+      <div class="step" data-step="2">
+        <label>Color</label>
+        <select id="bagColor">
+          <option value="yellow">yellow</option>
+          <option value="red">red</option>
+          <option value="blue">blue</option>
+          <option value="green">green</option>
+        </select>
+      </div>
+
+      <div class="step" data-step="3">
+        <label>Font</label>
+        <select id="bagFont">
+          <option value="bold">bold</option>
+          <option value="regular">regular</option>
+          <option value="italic">italic</option>
+        </select>
+      </div>
+
+      <div class="step" data-step="4">
+        <label>Image upload</label>
+        <input id="bagImage" type="file" accept="image/*" />
+
+        <div
+          id="imageError"
+          style="font-size:12px;color:#b10f0f;min-height:16px;"
+        ></div>
+
+        <div class="imagePreviewWrap">
+          <img id="imagePreview" alt="preview" />
+          <button id="removeImageBtn" class="btn outline" type="button">
+            Remove image
+          </button>
+        </div>
+
+        <button id="saveBagBtn">Save Bag</button>
+      </div>
+
+      <div class="wizardNav">
+        <button id="prevStepBtn" class="btn outline" type="button">Back</button>
+        <button id="nextStepBtn" class="btn" type="button">Next</button>
+      </div>
     </div>
 
     <script type="module" src="/src/main.js"></script>

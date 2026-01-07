@@ -167,6 +167,14 @@ function updatePointerNDC(e) {
   pointerNDC.set(x, y);
 }
 
+function isTabletView() {
+  return window.innerWidth >= 760 && window.innerWidth <= 1024;
+}
+
+function isMobileView() {
+  return window.innerWidth < 760;
+}
+
 const loader = new GLTFLoader();
 
 let bagRoot = null;
@@ -472,6 +480,95 @@ renderer.domElement.addEventListener("pointerleave", () => {
   isHoveringCanvas = false;
 });
 
+function applyBagLayout() {
+  if (!bagRoot) return;
+
+  const box = new THREE.Box3().setFromObject(bagRoot);
+  const size = new THREE.Vector3();
+  box.getSize(size);
+
+  const maxAxis = Math.max(size.x, size.y, size.z);
+
+  let scale = 1.9 / maxAxis;
+  let offsetX = 0;
+  let offsetY = 0.9;
+
+  if (isTabletView()) {
+    scale = 1.4 / maxAxis;
+    offsetX = 0.6;
+    offsetY = 1.1;
+  }
+
+  if (isMobileView()) {
+    scale = 1.25 / maxAxis;
+    offsetX = 0.05;
+    offsetY = 1.05;
+  }
+
+  bagRoot.scale.setScalar(scale);
+  bagRoot.position.x = offsetX;
+  bagRoot.position.y = offsetY;
+}
+
+let currentStep = 1;
+const totalSteps = 4;
+
+function isMobileWizard() {
+  return window.innerWidth < 760;
+}
+
+function setStep(step) {
+  currentStep = Math.max(1, Math.min(totalSteps, step));
+
+  const panel = document.getElementById("uiPanel");
+  const steps = document.querySelectorAll(".ui .step");
+  const prevBtn = document.getElementById("prevStepBtn");
+  const nextBtn = document.getElementById("nextStepBtn");
+
+  if (!panel) return;
+
+  if (!isMobileWizard()) {
+    panel.classList.remove("isWizard");
+    steps.forEach((s) => s.classList.remove("active"));
+    if (prevBtn) prevBtn.style.display = "none";
+    if (nextBtn) nextBtn.style.display = "none";
+    return;
+  }
+
+  panel.classList.add("isWizard");
+
+  steps.forEach((s) => {
+    const n = Number(s.getAttribute("data-step"));
+    s.classList.toggle("active", n === currentStep);
+  });
+
+  if (prevBtn) prevBtn.style.display = currentStep === 1 ? "none" : "inline-flex";
+
+  if (nextBtn) {
+    if (currentStep === totalSteps) {
+      nextBtn.style.display = "none";
+    } else {
+      nextBtn.style.display = "inline-flex";
+      nextBtn.textContent = "Next";
+    }
+  }
+
+  const active = document.querySelector(`.ui .step[data-step="${currentStep}"]`);
+  const focusEl = active?.querySelector("input, select");
+  focusEl?.focus?.();
+}
+
+function bindWizardButtons() {
+  const prevBtn = document.getElementById("prevStepBtn");
+  const nextBtn = document.getElementById("nextStepBtn");
+
+  prevBtn?.addEventListener("click", () => setStep(currentStep - 1));
+  nextBtn?.addEventListener("click", () => setStep(currentStep + 1));
+}
+
+bindWizardButtons();
+setStep(1);
+
 loader.load(
   "/models/chipsbag.glb",
   (gltf) => {
@@ -481,19 +578,11 @@ loader.load(
     decalMesh = pickDecalMesh(bagRoot);
 
     const box = new THREE.Box3().setFromObject(bagRoot);
-    const size = new THREE.Vector3();
-    box.getSize(size);
-
     const center = new THREE.Vector3();
     box.getCenter(center);
-
     bagRoot.position.sub(center);
 
-    const maxAxis = Math.max(size.x, size.y, size.z);
-    const scale = 2.0 / maxAxis;
-    bagRoot.scale.setScalar(scale);
-
-    bagRoot.position.y += 0.9;
+    applyBagLayout();
 
     bagRoot.rotation.set(0, 0, 0);
 
@@ -692,4 +781,6 @@ window.addEventListener("resize", () => {
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  applyBagLayout();
+  setStep(currentStep);
 });

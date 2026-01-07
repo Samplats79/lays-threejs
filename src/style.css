@@ -172,3 +172,118 @@ body {
   padding: 10px;
   display: none;
 }
+
+.step {
+  display: block;
+}
+
+.wizardNav {
+  display: none;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.wizardNav .btn {
+  flex: 1;
+}
+
+
+@media (min-width: 760px) and (max-width: 1024px) {
+  .topbar {
+    top: 16px;
+    left: 16px;
+    right: 16px;
+  }
+
+  .brand {
+    width: 48px;
+    height: 48px;
+    border-radius: 16px;
+  }
+
+  .brand img {
+    width: 34px;
+    height: 34px;
+  }
+
+  .btn {
+    padding: 9px 12px;
+    font-weight: 800;
+  }
+
+  .ui {
+    top: 80px;
+    left: 16px;
+    width: min(320px, calc(100vw - 32px));
+    padding: 16px;
+    border-radius: 20px;
+    gap: 10px;
+  }
+
+  .ui input,
+  .ui select {
+    padding: 11px 12px;
+    border-radius: 12px;
+  }
+
+  #saveBagBtn {
+    padding: 13px 14px;
+  }
+
+  #imagePreview {
+    height: 120px;
+  }
+
+  .wizardNav {
+    display: none;
+  }
+}
+
+@media (max-width: 759px) {
+  .topbar {
+    top: 14px;
+    left: 14px;
+    right: 14px;
+  }
+
+  .brand {
+    width: 46px;
+    height: 46px;
+    border-radius: 16px;
+  }
+
+  .brand img {
+    width: 32px;
+    height: 32px;
+  }
+
+  .btn {
+    padding: 9px 12px;
+    font-weight: 800;
+  }
+
+  .ui {
+    top: auto;
+    bottom: 14px;
+    left: 14px;
+    right: 14px;
+    width: auto;
+    padding: 14px;
+    border-radius: 20px;
+  }
+
+  .ui.isWizard .step {
+    display: none;
+  }
+  .ui.isWizard .step.active {
+    display: block;
+  }
+
+  .wizardNav {
+    display: flex;
+  }
+
+  #imagePreview {
+    height: 110px;
+  }
+}
