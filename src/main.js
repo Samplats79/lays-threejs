@@ -154,6 +154,19 @@ controls.enablePan = false;
 controls.enableZoom = false;
 controls.enableRotate = false;
 
+let isHoveringCanvas = false;
+const autoRotateSpeed = 0.006;
+
+const raycaster = new THREE.Raycaster();
+const pointerNDC = new THREE.Vector2();
+
+function updatePointerNDC(e) {
+  const rect = renderer.domElement.getBoundingClientRect();
+  const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+  const y = -(((e.clientY - rect.top) / rect.height) * 2 - 1);
+  pointerNDC.set(x, y);
+}
+
 const loader = new GLTFLoader();
 
 let bagRoot = null;
@@ -437,6 +450,28 @@ function setFrontView() {
   controls.update();
 }
 
+function updateHoverState() {
+  if (!bagRoot) {
+    isHoveringCanvas = false;
+    return;
+  }
+  raycaster.setFromCamera(pointerNDC, camera);
+  const hits = raycaster.intersectObject(bagRoot, true);
+  isHoveringCanvas = hits.length > 0;
+}
+
+renderer.domElement.addEventListener("pointerenter", (e) => {
+  updatePointerNDC(e);
+  updateHoverState();
+});
+renderer.domElement.addEventListener("pointermove", (e) => {
+  updatePointerNDC(e);
+  updateHoverState();
+});
+renderer.domElement.addEventListener("pointerleave", () => {
+  isHoveringCanvas = false;
+});
+
 loader.load(
   "/models/chipsbag.glb",
   (gltf) => {
@@ -485,6 +520,10 @@ function animate() {
   if (bagRoot) {
     bagRoot.rotation.x = 0;
     bagRoot.rotation.z = 0;
+
+    if (!isHoveringCanvas) {
+      bagRoot.rotation.y += autoRotateSpeed;
+    }
   }
 
   setFrontView();

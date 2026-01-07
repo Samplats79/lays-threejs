@@ -3,18 +3,23 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Lays ThreeJS</title>
+    <title>Lays configurator</title>
+
+    <link rel="icon" type="image/png" href="/images/laysLogo.png" />
   </head>
   <body>
     <canvas id="app"></canvas>
 
-    <div class="ui">
-      <div class="ui-top">
-        <button id="logoutBtn" class="btn outline">Logout</button>
-      </div>
+    <header class="topbar">
+      <a class="brand" href="https://lays-vue.onrender.com/" aria-label="Lay's home">
+        <img src="/images/laysLogo.png" alt="Lay's" />
+      </a>
+      <button id="logoutBtn" class="btn outline">Logout</button>
+    </header>
 
+    <div class="ui">
       <label>Bag name</label>
-      <input id="bagName" type="text"/>
+      <input id="bagName" type="text" />
 
       <label>Color</label>
       <select id="bagColor">
@@ -38,7 +43,9 @@
 
       <div class="imagePreviewWrap">
         <img id="imagePreview" alt="preview" />
-        <button id="removeImageBtn" class="btn outline" type="button">Remove image</button>
+        <button id="removeImageBtn" class="btn outline" type="button">
+          Remove image
+        </button>
       </div>
 
       <button id="saveBagBtn">Save Bag</button>

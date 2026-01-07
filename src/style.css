@@ -17,12 +17,44 @@ body {
   width: 100vw;
   height: 100vh;
   display: block;
+}
+
+.topbar {
+  position: fixed;
+  top: 24px;
+  left: 24px;
+  right: 24px;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   pointer-events: none;
+}
+
+.brand {
+  width: 54px;
+  height: 54px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 2px solid rgba(203, 36, 36, 0.18);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.12);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  pointer-events: auto;
+}
+
+.brand img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  display: block;
 }
 
 .ui {
   position: fixed;
-  top: 24px;
+  top: 96px;
   left: 24px;
   width: min(360px, calc(100vw - 48px));
   background: rgba(255, 255, 255, 0.92);
@@ -107,6 +139,7 @@ body {
   align-items: center;
   justify-content: center;
   transition: transform 0.08s ease, filter 0.2s ease, opacity 0.2s ease;
+  pointer-events: auto;
 }
 
 .btn:active {
@@ -121,29 +154,6 @@ body {
 
 .btn.outline:hover {
   filter: brightness(1.03);
-}
-
-#logoutBtn {
-  position: fixed;
-  top: 24px;
-  right: 24px;
-  z-index: 20;
-  pointer-events: auto;
-}
-
-@media (max-width: 520px) {
-  .ui {
-    top: 16px;
-    left: 16px;
-    width: calc(100vw - 32px);
-    padding: 16px;
-    border-radius: 20px;
-  }
-
-  #logoutBtn {
-    top: 16px;
-    right: 16px;
-  }
 }
 
 .imagePreviewWrap {
@@ -162,4 +172,3 @@ body {
   padding: 10px;
   display: none;
 }
-
