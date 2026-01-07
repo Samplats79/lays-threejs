@@ -180,9 +180,6 @@ const loader = new GLTFLoader();
 let bagRoot = null;
 let decalMesh = null;
 
-// ✅ BELANGRIJK: hier bewaren we de vaste originele size (maxAxis) van het model
-let bagBaseMaxAxis = null;
-
 let baseCanvas = null;
 let baseCtx = null;
 let baseTexture = null;
@@ -484,30 +481,54 @@ renderer.domElement.addEventListener("pointerleave", () => {
 });
 
 function applyBagLayout() {
-  if (!bagRoot || !bagBaseMaxAxis) return;
+  if (!bagRoot) return;
 
-  // ✅ we gebruiken altijd dezelfde originele maxAxis (niet degene van het geschaalde object)
-  let target = 1.9;
+  const box = new THREE.Box3().setFromObject(bagRoot);
+  const size = new THREE.Vector3();
+  box.getSize(size);
+
+  const maxAxis = Math.max(size.x, size.y, size.z);
+
+  let scale = 1.9 / maxAxis;
   let offsetX = 0;
   let offsetY = 0.9;
 
   if (isTabletView()) {
-    target = 1.4;
+    scale = 1.4 / maxAxis;
     offsetX = 0.6;
     offsetY = 1.1;
   }
 
   if (isMobileView()) {
-    target = 1.25;
+    scale = 1.25 / maxAxis;
     offsetX = 0.05;
     offsetY = 1.05;
   }
 
-  const scale = target / bagBaseMaxAxis;
   bagRoot.scale.setScalar(scale);
   bagRoot.position.x = offsetX;
   bagRoot.position.y = offsetY;
 }
+
+/* -----------------------------
+   ✅ NEW: force FRONT on save
+-------------------------------- */
+let isCapturing = false;
+// Als jouw front anders is, verander dit naar bv Math.PI
+const FRONT_ROT_Y = 0;
+
+function forceBagFront() {
+  if (!bagRoot) return { prevY: 0 };
+  const prevY = bagRoot.rotation.y;
+  bagRoot.rotation.y = FRONT_ROT_Y;
+  return { prevY };
+}
+
+function restoreBagRotation(prevY) {
+  if (!bagRoot) return;
+  bagRoot.rotation.y = prevY;
+}
+/* ----------------------------- */
 
 let currentStep = 1;
 const totalSteps = 4;
@@ -576,16 +597,10 @@ loader.load(
 
     decalMesh = pickDecalMesh(bagRoot);
 
-    // ✅ center object
     const box = new THREE.Box3().setFromObject(bagRoot);
     const center = new THREE.Vector3();
     box.getCenter(center);
     bagRoot.position.sub(center);
-
-    // ✅ 1x vaste originele maxAxis opslaan (NIET op resize opnieuw berekenen)
-    const size = new THREE.Vector3();
-    box.getSize(size);
-    bagBaseMaxAxis = Math.max(size.x, size.y, size.z);
 
     applyBagLayout();
 
@@ -615,13 +630,13 @@ function animate() {
     bagRoot.rotation.x = 0;
     bagRoot.rotation.z = 0;
 
-    if (!isHoveringCanvas) {
+    // ✅ NEW: stop autorotate while capturing
+    if (!isHoveringCanvas && !isCapturing) {
       bagRoot.rotation.y += autoRotateSpeed;
     }
   }
 
   setFrontView();
-
   renderer.render(scene, camera);
 }
 animate();
@@ -684,6 +699,7 @@ function captureCanvasImage() {
   try {
     if (!bagRoot) return "";
 
+    // render once more with forced rotation already set
     renderer.render(scene, camera);
 
     const srcCanvas = renderer.domElement;
@@ -728,8 +744,6 @@ document.getElementById("saveBagBtn")?.addEventListener("click", async () => {
   const bagColor = document.getElementById("bagColor")?.value || "yellow";
   const font = document.getElementById("bagFont")?.value || "bold";
 
-  const screenshot = captureCanvasImage();
-
   const base = apiBase();
   const url = base ? `${base}/bag` : "";
 
@@ -742,6 +756,16 @@ document.getElementById("saveBagBtn")?.addEventListener("click", async () => {
     alert("Geen token. Log eerst in via Vue.");
     return;
   }
+
+  // ✅ NEW: force front view for screenshot
+  isCapturing = true;
+  const { prevY } = forceBagFront();
+
+  const screenshot = captureCanvasImage();
+
+  // restore rotation
+  restoreBagRotation(prevY);
+  isCapturing = false;
 
   if (!screenshot) {
     alert("Screenshot failed.");
