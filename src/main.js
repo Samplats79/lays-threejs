@@ -195,6 +195,14 @@ const colorMap = {
   green: "#16A34A",
 };
 
+const flavourLabelMap = {
+  classic: "CLASSIC",
+  paprika: "PAPRIKA",
+  bbq: "BBQ",
+  "salt-vinegar": "SALT & VINEGAR",
+  "cheese-onion": "CHEESE & ONION",
+};
+
 function isImageReady(img) {
   if (!img) return false;
   if (img instanceof HTMLCanvasElement) return true;
@@ -322,14 +330,48 @@ function clamp(v, min, max) {
   return Math.max(min, Math.min(max, v));
 }
 
+function drawFlavourText(flavourValue, left, top, rectW, rectH) {
+  const txtRaw = flavourLabelMap[flavourValue] || String(flavourValue || "");
+  const txt = txtRaw.trim();
+  if (!txt) return;
+
+  const paddingX = Math.floor(rectW * 0.08);
+  const maxWidth = rectW - paddingX * 2;
+
+  let fontSize = Math.floor(rectW * 0.09);
+
+  baseCtx.textAlign = "center";
+  baseCtx.textBaseline = "middle";
+
+  baseCtx.fillStyle = "rgba(0,0,0,0.95)";
+  baseCtx.shadowColor = "rgba(0,0,0,0.35)";
+  baseCtx.shadowBlur = Math.floor(rectW * 0.02);
+
+  while (fontSize > 14) {
+    baseCtx.font = `900 ${fontSize}px system-ui, Arial`;
+    if (baseCtx.measureText(txt).width <= maxWidth) break;
+    fontSize -= 2;
+  }
+
+  const x = left + rectW * 0.5;
+  const y = top + rectH * 0.15;
+
+  baseCtx.fillText(txt, x, y);
+
+  baseCtx.shadowColor = "transparent";
+  baseCtx.shadowBlur = 0;
+}
+
 function redrawTextureOverlay() {
   const nameEl = document.getElementById("bagName");
   const colorEl = document.getElementById("bagColor");
   const fontEl = document.getElementById("bagFont");
+  const flavourEl = document.getElementById("bagFlavour");
 
   const name = (nameEl?.value || "").trim();
   const bagColor = colorEl?.value || "yellow";
   const font = fontEl?.value || "bold";
+  const flavour = flavourEl?.value || "classic";
 
   applyBagColor(colorMap[bagColor] || "#FFD000");
 
@@ -364,6 +406,8 @@ function redrawTextureOverlay() {
   const rectW = Math.max(1, right - left);
   const rectH = Math.max(1, bottom - top);
 
+  drawFlavourText(flavour, left, top, rectW, rectH);
+
   if (bagImageDataUrl) {
     const img = new Image();
     img.onload = () => {
@@ -384,7 +428,9 @@ function redrawTextureOverlay() {
       baseCtx.shadowBlur = Math.floor(rectW * 0.02);
       baseCtx.drawImage(img, x, y, drawW, drawH);
 
+      drawFlavourText(flavour, left, top, rectW, rectH);
       drawNameText(name, font, left, top, rectW, rectH);
+
       baseTexture.needsUpdate = true;
     };
     img.src = bagImageDataUrl;
@@ -441,12 +487,14 @@ function bindUI() {
   const nameEl = document.getElementById("bagName");
   const colorEl = document.getElementById("bagColor");
   const fontEl = document.getElementById("bagFont");
+  const flavourEl = document.getElementById("bagFlavour");
 
   const onChange = () => redrawTextureOverlay();
 
   nameEl?.addEventListener("input", onChange);
   colorEl?.addEventListener("change", onChange);
   fontEl?.addEventListener("change", onChange);
+  flavourEl?.addEventListener("change", onChange);
 
   bindImageUpload();
 }
@@ -510,11 +558,7 @@ function applyBagLayout() {
   bagRoot.position.y = offsetY;
 }
 
-/* -----------------------------
-   ✅ NEW: force FRONT on save
--------------------------------- */
 let isCapturing = false;
-// Als jouw front anders is, verander dit naar bv Math.PI
 const FRONT_ROT_Y = 0;
 
 function forceBagFront() {
@@ -528,10 +572,9 @@ function restoreBagRotation(prevY) {
   if (!bagRoot) return;
   bagRoot.rotation.y = prevY;
 }
-/* ----------------------------- */
 
 let currentStep = 1;
-const totalSteps = 4;
+const totalSteps = 5;
 
 function isMobileWizard() {
   return window.innerWidth < 760;
@@ -562,7 +605,9 @@ function setStep(step) {
     s.classList.toggle("active", n === currentStep);
   });
 
-  if (prevBtn) prevBtn.style.display = currentStep === 1 ? "none" : "inline-flex";
+  if (prevBtn) {
+    prevBtn.style.display = currentStep === 1 ? "none" : "inline-flex";
+  }
 
   if (nextBtn) {
     if (currentStep === totalSteps) {
@@ -630,7 +675,6 @@ function animate() {
     bagRoot.rotation.x = 0;
     bagRoot.rotation.z = 0;
 
-    // ✅ NEW: stop autorotate while capturing
     if (!isHoveringCanvas && !isCapturing) {
       bagRoot.rotation.y += autoRotateSpeed;
     }
@@ -699,7 +743,6 @@ function captureCanvasImage() {
   try {
     if (!bagRoot) return "";
 
-    // render once more with forced rotation already set
     renderer.render(scene, camera);
 
     const srcCanvas = renderer.domElement;
@@ -743,6 +786,7 @@ document.getElementById("saveBagBtn")?.addEventListener("click", async () => {
   const name = (document.getElementById("bagName")?.value || "").trim();
   const bagColor = document.getElementById("bagColor")?.value || "yellow";
   const font = document.getElementById("bagFont")?.value || "bold";
+  const flavour = document.getElementById("bagFlavour")?.value || "classic";
 
   const base = apiBase();
   const url = base ? `${base}/bag` : "";
@@ -757,13 +801,11 @@ document.getElementById("saveBagBtn")?.addEventListener("click", async () => {
     return;
   }
 
-  // ✅ NEW: force front view for screenshot
   isCapturing = true;
   const { prevY } = forceBagFront();
 
   const screenshot = captureCanvasImage();
 
-  // restore rotation
   restoreBagRotation(prevY);
   isCapturing = false;
 
@@ -787,7 +829,7 @@ document.getElementById("saveBagBtn")?.addEventListener("click", async () => {
         pattern: "plain",
         packaging: "classic",
         inspiration: "",
-        keyFlavours: [],
+        keyFlavours: [flavour],
         user: "anonymous",
       }),
     });

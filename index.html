@@ -43,13 +43,21 @@
       </div>
 
       <div class="step" data-step="4">
+        <label>Flavour</label>
+        <select id="bagFlavour">
+          <option value="classic">Classic</option>
+          <option value="paprika">Paprika</option>
+          <option value="bbq">BBQ</option>
+          <option value="salt-vinegar">Salt &amp; Vinegar</option>
+          <option value="cheese-onion">Cheese &amp; Onion</option>
+        </select>
+      </div>
+
+      <div class="step" data-step="5">
         <label>Image upload</label>
         <input id="bagImage" type="file" accept="image/*" />
 
-        <div
-          id="imageError"
-          style="font-size:12px;color:#b10f0f;min-height:16px;"
-        ></div>
+        <div id="imageError" style="font-size:12px;color:#b10f0f;min-height:16px;"></div>
 
         <div class="imagePreviewWrap">
           <img id="imagePreview" alt="preview" />
